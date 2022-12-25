@@ -8,15 +8,20 @@ using namespace std;
 
 const int population = 20;   // 种群规模
 const int n = 30;           // n的长度
-const int iteration = 100;  // 代数限制
-const double muteProb = 0.01;  // 变异概率
-const double crossProb = 0.50;  // 交叉概率
+const int iteration = 100 * population;  // 代数限制
+const double muteProb = 0.05;  // 变异概率
+const double crossProb = 0.80;  // 交叉概率
+const int NUM_SIMULATIONS = 50;  // 蒙特卡洛仿真次数
+
+double best_fitness_mtkl = 0; // 蒙特卡洛仿真
 
 vector<vector<int>> parents(population, vector<int>(n));  // 父代
 vector<vector<int>> children(population, vector<int>(n));  // 子代
 vector<int> maxFitness(iteration);  // 种群中每一代的最大适应度
 vector<int> avgFitness(iteration);  // 种群中每一代的平均适应度
 vector<int> fitness(population);  // 种群中每个个体的适应度
+vector<int> best_fitnesses(iteration);  // 最优适应度
+vector<double> avg_fitness(iteration);  // 平均适应度
 
 int cal_fitness(int i) {    //计算第i个种群的适应度，在这里返回1的个数即可
     int res = 0;
@@ -92,16 +97,25 @@ void update_parents() { // 更新父代
     update_fitness();
 }
 
-int main() {
-    srand((unsigned)time(NULL));  // 设置随机数种子
+pair<int, double> updata_Result() {
+    int maxFitness = -1;
+    double sum = 0;
+    for (auto fit : fitness) {
+        maxFitness = max(maxFitness, fit);
+        sum += fit;
+    }
+    return {maxFitness, (sum / population)};
+}
+
+void ga() {
     init();  // 初始化种群
     int generation = 0;
-    while (generation <= iteration) {
-        generation ++;  // 迭代次数 + 1
+    while (generation < iteration) {
+
 
         update_fitness();  // 计算父代的适应度
 
-        for (int i = 0; i < population / 2; i ++ ) {
+        for (int i = 0; i < population / 2; i++) {
             auto p = select();  // select
 
             auto c = crossover(p.first, p.second);  // crossover
@@ -115,11 +129,44 @@ int main() {
             update_parents();  //  update
         }
 
-        for (int i = 0; i < population; i ++ ) {
-            cout << fitness[i] << " ";
-        }
-        cout << endl;
+        auto pr = updata_Result();
+
+        best_fitness_mtkl += pr.first;
+        best_fitnesses[generation] = pr.first;
+        avg_fitness[generation] = pr.second;
+
+        generation++;  // 迭代次数 + 1
     }
+}
+
+void printStatus() {
+    for (int i = 0; i < iteration; i ++ ) {
+        cout << i << ", ";
+    }
+    cout << endl;
+    for (int i = 0; i < iteration; i ++ ) {
+        cout << best_fitnesses[i] << ", ";
+    }
+    cout << endl;
+    for (int i = 0; i < iteration; i ++ ) {
+        cout << avg_fitness[i] << ", ";
+    }
+    cout << endl;
+}
+
+int main() {
+    srand((unsigned)time(NULL));  // 设置随机数种子
+
+    ga();
+    printStatus();
+
+    /*
+    for (int i = 0; i < NUM_SIMULATIONS; i ++ ) { // 50次蒙特卡洛仿真
+        ga();
+        cout << best_fitness_mtkl / iteration << ", ";
+        best_fitness_mtkl = 0;
+    }
+    */
 
     return 0;
 }
